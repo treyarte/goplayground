@@ -1,76 +1,101 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
+	"errors"
 	"log"
-
-	"github.com/treyarte/playground/helpers"
 )
 
 type Enemy struct {
+	Name string
 	Health   float64
-	Mana     string
+	Mana     float64
 	Strength int
-	Damage   float64
+	AttackPower   float64
 }
 
-func (attacker *Enemy) Attack(target *Enemy) (string, string) {
-	if target.Health <= 0 {
-		return "", "Target is dead"
-	}
-
-	totalDamage := float64(attacker.Strength/5.0) + attacker.Damage
-
-	remainingHealth := target.Health - totalDamage
-
-	var enemyStatus string
-
-	if remainingHealth < -100 {
-		 enemyStatus = "OVERKILL!!"
-	}
-
-	if remainingHealth < 0 && remainingHealth > -100 {
-		enemyStatus = "You killed the enemy"
-	}
-
-	damageDealt := fmt.Sprintf("You did %v damage!", totalDamage)
-
-	return damageDealt, enemyStatus
+var validEnemy = Enemy{
+	Name:        "Poring",
+	Health:      150,
+	Mana:        0,
+	Strength:    1,
+	AttackPower: 16,
 }
 
-var max = 100
-
-func CalculateValue(intChan chan int) {
-	value := helpers.RandomNumber(max)
-
-	intChan <- value
+var invalidEnemy = Enemy{
+	Name:        "Blue Roda Frog",
+	Health:      150,
+	Mana:        0,
+	Strength:    -1000,
+	AttackPower: 200,
 }
+
+var Enemies = []Enemy {
+	{
+		Name: "Cell",
+		Health: 900,
+		Mana: 100,
+		Strength: 78,
+		AttackPower: 200,	
+	},
+	{
+		Name: "Poring",
+		Health: 150,
+		Mana: 0,
+		Strength: 1,
+	},
+	{
+		Name: "Pupa",
+		Health: 1000,
+		Mana: 0,
+		Strength: 0,
+	},
+}
+
+var JsonEnemies string = `
+	[
+		{
+			"Name": "Boomba",
+			"Health": 600,
+			"Mana": 0,
+			"Strength": 26
+		},
+		{
+			"Name": "Rappi",
+			"Health": 480,
+			"Mana": 20,
+			"Strength": 15
+		}
+	]
+`
+
+
+func (attacker *Enemy) calculateDamage() (float64, error) {
+	strBonusDmg := (attacker.Strength/20) * 4
+	totalDamage := float64(attacker.Strength + strBonusDmg) + attacker.AttackPower
+
+	if(totalDamage < 0) {
+		return 0, errors.New("damage cannot be less than 0")
+	}
+	return totalDamage, nil;
+}
+
 
 func main() {
-	enemy1 := Enemy {
-		Health: 980,
-		Mana: "100",
-		Strength: 63,
-		Damage: 300,
+
+	var res []Enemy
+	err := json.Unmarshal([]byte(JsonEnemies), &res)
+	if err != nil {
+		log.Fatal("Failed to convert from JSON")
 	}
 
-	enemy2 := Enemy {
-		Health: 301,
-		Mana: "100",
-		Strength: 63,
-		Damage: 300,
+	log.Println(res)
+
+	jsonStr, err := json.MarshalIndent(Enemies, "", "      ")
+	if err != nil {
+		log.Fatal("Failed to convert to JSON")
 	}
-
-	dmgDealt, enemyStatus := enemy1.Attack(&enemy2);
-
-	fmt.Println(dmgDealt)
-	fmt.Println(enemyStatus)
-
-	intChan := make(chan int)
-	defer close(intChan)
 	
-	go CalculateValue(intChan)
-
-	log.Println(<- intChan)
+	log.Panicln(string(jsonStr))
 
 }
